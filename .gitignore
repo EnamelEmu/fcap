@@ -1,3 +1,5 @@
 /target
 *.pcap
 *.txt
+Cargo.lock
+*.lock
