@@ -1,6 +1,7 @@
 use std::io::prelude::*;
 use std::env;
 use std::fs;
+use std::cmp;
 use std::process::exit;
 use std::fs::File;
 
@@ -12,7 +13,7 @@ fn main() {
     }
     let filename = &args[1];
     let fltwrt = get_bytes(filename.to_string());
-    corrupt_byte(fltwrt, 0.01);
+    corrupt_byte(fltwrt);
 }
 
 fn create_magic() -> Vec<u8> {
@@ -53,11 +54,17 @@ fn create_data(data: Vec<u8>)  {
 
 }
 
-fn corrupt_byte(data: Vec<u8>, percentage: f32) {
+fn corrupt_byte(mut data: Vec<u8>) -> Vec<u8> {
     // this kinda sucks but basically it will get a precentage (of at minumin one) so it can overwrite the bytes over
-    let magic_to_u8_vec: Vec<u8> = create_magic();
-    println!("{:?}",magic_to_u8_vec);
-    let n = f32::max(1.0, data.len() as f32 * percentage);
+    let mut magic_vec: Vec<u8> = create_magic();
+    println!("{:?}",magic_vec);
+    let data_length: f32 = data.len() as f32;
+    let n = f32::max(1.0 ,data_length * 0.1); // if the file is big corrupt (datalenght * 0.1)% of it, otherwise, just corrupt 1%
+    let start_point: usize = rand::random::<usize>() % data_length as usize;
+    let end_point: usize = start_point + magic_vec.len() - 10;
+    let ret: Vec<u8 > = data.splice(start_point..=end_point, magic_vec).collect();
+    ret
+
 }
 
 fn get_bytes(filename: String) -> Vec<u8>
