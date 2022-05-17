@@ -1,19 +1,20 @@
 use std::io::prelude::*;
 use std::env;
 use std::fs;
-use std::cmp;
 use std::process::exit;
 use std::fs::File;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() == 1 {
-        eprintln!("Usage: fcap [pcap]");
+    if args.len() != 3 {
+        eprintln!("Usage: fcap [file_to_read] [file_to_write]");
         exit(1);
     }
     let filename = &args[1];
     let fltwrt = get_bytes(filename.to_string());
-    corrupt_byte(fltwrt);
+    let corrupt_file = corrupt_byte(fltwrt);
+    create_data(corrupt_file, &args[2]);
+
 }
 
 fn create_magic() -> Vec<u8> {
@@ -30,7 +31,6 @@ fn create_magic() -> Vec<u8> {
              0x7FFFFFFF];
     let rand_num: usize = rand::random::<usize>() % 10;
     let magic_value: u32 = magic_bytes[rand_num];
-    println!("{}", magic_value);
     if magic_value == 0 {
         let rand_num: u8 = rand::random::<u8>() % 3;
         match rand_num {
@@ -48,28 +48,30 @@ fn create_magic() -> Vec<u8> {
         }
     }
 }
-fn create_data(data: Vec<u8>)  {
-    let mut buffer = File::create("mutated.pcap").expect("error creating mutated.pcap");
-    buffer.write_all(&data).expect("Error writing to mutated");
+fn create_data(data: Vec<u8>, file_destination: &String)  {
+    let mut buffer = File::create(file_destination).expect("error creating destination file");
+    buffer.write_all(&data).expect("Error writing to destination file");
 
 }
 
 fn corrupt_byte(mut data: Vec<u8>) -> Vec<u8> {
     // this kinda sucks but basically it will get a precentage (of at minumin one) so it can overwrite the bytes over
-    let mut magic_vec: Vec<u8> = create_magic();
-    println!("{:?}",magic_vec);
     let data_length: f32 = data.len() as f32;
-    let n = f32::max(1.0 ,data_length * 0.1); // if the file is big corrupt (datalenght * 0.1)% of it, otherwise, just corrupt 1%
-    let start_point: usize = rand::random::<usize>() % data_length as usize;
-    let end_point: usize = start_point + magic_vec.len() - 10;
-    let ret: Vec<u8 > = data.splice(start_point..=end_point, magic_vec).collect();
-    ret
+    let n = f32::max(1.0 ,data_length * 0.01); // if the file is big corrupt (datalenght * 0.1)% of it, otherwise, just corrupt 1%
+    let mut n_uint: u32 = n as u32;
+    while n_uint != 0 {
+        let mut start_point: usize = rand::random::<usize>() % data_length as usize; //
+        for byte in create_magic().into_iter() {
+            data[start_point] = byte;
+            start_point += 1;
+        }
+        n_uint -= 1
+
+    }
+   data
 
 }
 
-fn get_bytes(filename: String) -> Vec<u8>
-{
-    let contents = fs::read(filename).expect("Error reading filename");
-    println!("{:?}", contents);
-    contents
+fn get_bytes(filename: String) -> Vec<u8> {
+    fs::read(filename).expect("Error reading filename")
 }

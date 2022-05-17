@@ -3,3 +3,7 @@
 *.txt
 Cargo.lock
 *.lock
+/*.png
+/*.svg
+/perf.data
+/perf.data.old
