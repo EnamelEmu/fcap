@@ -6,14 +6,14 @@ use std::fs::File;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        eprintln!("Usage: fcap [file_to_read] [file_to_write]");
+    if args.len() != 2 {
+        eprintln!("Usage: fcap [file_to_read]");
         exit(1);
     }
     let filename = &args[1];
     let fltwrt = get_bytes(filename.to_string());
     let corrupt_file = corrupt_byte(fltwrt);
-    create_data(corrupt_file, &args[2]);
+    create_data(corrupt_file, filename);
 
 }
 
@@ -49,7 +49,8 @@ fn create_magic() -> Vec<u8> {
     }
 }
 fn create_data(data: Vec<u8>, file_destination: &String)  {
-    let mut buffer = File::create(file_destination).expect("error creating destination file");
+    let formated_file_dest = format!("mutated{}",file_destination);
+    let mut buffer = File::create(formated_file_dest).expect("error creating destination file");
     buffer.write_all(&data).expect("Error writing to destination file");
 
 }
@@ -60,9 +61,12 @@ fn corrupt_byte(mut data: Vec<u8>) -> Vec<u8> {
     let n = f32::max(1.0 ,data_length * 0.01); // if the file is big corrupt (datalenght * 0.1)% of it, otherwise, just corrupt 1%
     let mut n_uint: u32 = n as u32;
     while n_uint != 0 {
-        let mut start_point: usize = rand::random::<usize>() % data_length as usize; //
+        let mut start_point: usize = rand::random::<usize>() % data_length as usize;
         for byte in create_magic().into_iter() {
-            data[start_point] = byte;
+            match data.get(start_point) {
+                Some(_) => { data[start_point] = byte; }
+                None => break,
+            }
             start_point += 1;
         }
         n_uint -= 1
